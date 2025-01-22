@@ -9,14 +9,25 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mantine/core": "^6.0.22",
+    "@mantine/dropzone": "^6.0.22",
+    "@mantine/modals": "^6.0.22",
+    "@mantine/notifications": "^6.0.22",
+    "@pinata/sdk": "^2.1.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.48.0",
+    "@tabler/icons-react": "^3.28.1",
+    "fs": "^0.0.1-security",
+    "next": "15.1.5",
+    "pinata": "^1.10.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.1.5"
+    "react-responsive": "^10.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^19",
-    "@types/react-dom": "^19"
+    "@types/react-dom": "^19",
+    "typescript": "^5"
   }
 }
