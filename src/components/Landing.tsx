@@ -1,5 +1,5 @@
 "use client"
-import { Button, Text, Flex, Image, Title, Center, Group, LoadingOverlay, Grid, Input, TextInput, Card, SimpleGrid } from "@mantine/core";
+import { Button, Text, Flex, Image, Title, Center, Group, LoadingOverlay, Grid, Input, TextInput, Card, SimpleGrid, Box, Modal } from "@mantine/core";
 import useIsMobile from "./useIsMobile";
 import { useEffect, useState } from "react";
 import { IconUpload, IconPhoto, IconX } from '@tabler/icons-react';
@@ -8,6 +8,7 @@ import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import { supabaseClient } from "@/utils/app/supabase-client";
 import { supabaseAdmin } from "@/utils/server/supabase-admin";
+import { Carousel } from "@mantine/carousel";
 
 interface LandingProps {
 
@@ -22,6 +23,7 @@ const Landing: React.FC<LandingProps> = ({ }) => {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [nftImages, setNftImages] = useState<any>([]);
     const [selectedNftIndex, setSlectedNftIndex] = useState<any>(-1);
+    const [openNFTImagesModal, setOpenNFTImagesModal] = useState<boolean>(false);
 
     const openModal = () => modals.openConfirmModal({
         title: 'Please input the NFT name.',
@@ -98,7 +100,7 @@ const Landing: React.FC<LandingProps> = ({ }) => {
                 message: `Uploaded ${uploadedFiles.length} images successfully.`,
                 color: "blue"
             })
-            
+            getNftImages();
         } catch (e) {
             console.log(e);
         }
@@ -127,8 +129,45 @@ const Landing: React.FC<LandingProps> = ({ }) => {
         });
     }
 
-    const renderNftImage = (nft_data: any, index: number) => {
-        
+    const renderNftModalImage = () => {
+        const nft_data = nftImages[selectedNftIndex];
+        if (!nft_data || !nft_data.meta_data) {
+            console.warn("Invalid NFT data:", nft_data);
+            return null;
+        }
+
+        const { meta_data } = nft_data;
+        const images = Array.isArray(meta_data.images)
+            ? meta_data.images
+            : meta_data.image
+                ? [{ image: meta_data.image }]
+                : [];
+
+
+        return <Grid key={`nfg-image-modal-${selectedNftIndex}`}>
+            {
+                images.map((image: any, index: number) =>
+                    <Grid.Col span={isMobile ? 12 : 4} key={`nfg-image-item-${index}`}>
+                        <Image
+                            w={'100%'}
+                            src={`https://ipfs.io/ipfs/${image.image.split("//")[1]}`}
+                            key={index}
+                            radius="sm"
+                        />
+                        <Center mt={20}>
+                            <Button>
+                                Mint
+                            </Button>
+                        </Center>
+                    </Grid.Col>
+                )
+            }
+
+        </Grid>
+    }
+
+    const renderNftCardImage = (nft_data: any, index: number) => {
+
         if (!nft_data || !nft_data.meta_data) {
             console.warn("Invalid NFT data:", nft_data);
             return null;
@@ -147,45 +186,56 @@ const Landing: React.FC<LandingProps> = ({ }) => {
         }
 
         return (
-            <Grid.Col span={isMobile ? 12 : 3} key={nft_data.id || Math.random()} sx={(theme) =>({cursor: 'pointer'})} >
+            <Grid.Col span={isMobile ? 12 : 3} key={nft_data.id || Math.random()} sx={(theme) => ({ cursor: 'pointer' })} >
                 <Card shadow="sm" padding="lg" radius="md" withBorder
-                    sx={(theme) =>({
-                        border: index == selectedNftIndex ? '3px solid #0099ff !important':'0px solid black'
-                    })}
-                    onClick={() => {
-                        setSlectedNftIndex(index)
-                    }}
                 >
                     <Card.Section>
                         <Image
                             src={`https://ipfs.io/ipfs/${images[0].image.split("//")[1]}`}
                             radius="sm"
+                            onClick={() => {
+                                if (images.length > 1) {
+                                    setSlectedNftIndex(index);
+                                    setOpenNFTImagesModal(true);
+                                }
+                            }}
                         />
                     </Card.Section>
-                    <Text size="xl" color="black" mt={10}>
-                        {meta_data.name || "Unnamed NFT"}
-                    </Text>
-                    {images.length > 1 && (
-                        <Card.Section inheritPadding mt="sm" pb="md">
-                            <SimpleGrid cols={isMobile ? 4 : 2} key={'first-image'}>
+                    <Flex
+                        justify={'space-between'}
+                        align={'center'}
+                        mt={20}
+                    >
+                        <Text color="black" >
+                            {meta_data.name || "Unnamed NFT"}
+                        </Text>
+                        <Button color="primary">
+                            Mint
+                        </Button>
+                    </Flex>
+                    {
+                        images.length > 1 && (
+                            <Carousel
+                                maw={320}
+                                mx="auto"
+                                withIndicators
+                                dragFree
+                                slideGap="md"
+                                align="start"
+                                mt={20}
+                            >
                                 {images.map((image: any, key: number) => (
-                                    <Flex
-                                        gap={10}
-                                        direction={'column'}
-                                    >
+                                    <Carousel.Slide key={key}>
                                         <Image
                                             src={`https://ipfs.io/ipfs/${image.image.split("//")[1]}`}
-                                            key={key}
                                             radius="sm"
                                         />
-                                        <Text>
-                                            {image.view}
-                                        </Text>
-                                    </Flex>
+                                    </Carousel.Slide>
+
                                 ))}
-                            </SimpleGrid>
-                        </Card.Section>
-                    )}
+                            </Carousel>
+                        )
+                    }
                 </Card>
             </Grid.Col>
         );
@@ -233,23 +283,38 @@ const Landing: React.FC<LandingProps> = ({ }) => {
                                     }}
                                 >Connect Wallet</Button>
                             :
-                            <Flex
-                                gap={10}
-                                direction={'column'}
+                            <Box
+                                sx={(theme) => ({
+                                    backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[3],
+                                    textAlign: 'center',
+                                    padding: theme.spacing.xl,
+                                    borderRadius: theme.radius.md,
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                        backgroundColor:
+                                            theme.colorScheme === 'dark' ? theme.colors.dark[5] : theme.colors.gray[4],
+                                    },
+                                })}
                             >
-                                <Text
-                                    color="gray"
-                                    size="20px"
+                                <Flex
+                                    gap={10}
+                                    direction={'column'}
                                 >
-                                    Wallet address
-                                </Text>
-                                <Text
-                                    color="gray"
-                                    size="20px"
-                                >
-                                    {walletAddress}
-                                </Text>
-                            </Flex>
+                                    <Text
+                                        color="gray"
+                                        size="20px"
+                                        weight={'bold'}
+                                    >
+                                        Wallet address
+                                    </Text>
+                                    <Text
+                                        color="gray"
+                                        size="20px"
+                                    >
+                                        {walletAddress}
+                                    </Text>
+                                </Flex>
+                            </Box>
                     }
                 </Center>
                 {
@@ -283,7 +348,7 @@ const Landing: React.FC<LandingProps> = ({ }) => {
                                 </Dropzone.Idle>
                                 <div>
                                     <Text size="25px" inline>
-                                        Drag images here or click to select files
+                                        Drag images or Directory here to upload.
                                     </Text>
                                 </div>
                             </Flex>
@@ -316,7 +381,6 @@ const Landing: React.FC<LandingProps> = ({ }) => {
                         }
                     </Center>
                 </Flex>
-                <LoadingOverlay visible={isLoading} overlayBlur={2} />
             </Flex>
             <Center mt={50}>
                 <Text size={30} weight={'bold'}>
@@ -324,29 +388,42 @@ const Landing: React.FC<LandingProps> = ({ }) => {
                 </Text>
             </Center>
             <Center>
-                <LoadingOverlay visible={isLoading} overlayBlur={2} />
                 <Grid
                     w={'90%'}
                 >
                     {
                         nftImages.length == 0 ?
-                        <Center>
-                            <Text>
-                                No uploaded NFT images
-                            </Text>
-                        </Center>
-                        :
-                        nftImages.map((item: any, index: number) =>
-                            renderNftImage(item, index)
-                        )
+                            <Center>
+                                <Text>
+                                    No uploaded NFT images
+                                </Text>
+                            </Center>
+                            :
+                            nftImages.map((item: any, index: number) =>
+                                renderNftCardImage(item, index)
+                            )
                     }
                 </Grid>
             </Center>
-            <Center>
-                <Button size="xl" disabled={selectedNftIndex > -1 ? false : true}>
-                    Minting
-                </Button>
-            </Center>
+            <Modal
+                opened={openNFTImagesModal}
+                onClose={
+                    () => { setOpenNFTImagesModal(false) }
+                }
+                title={
+                    <Text size={'lg'}>
+                        {selectedNftIndex > -1 && nftImages[selectedNftIndex].meta_data.name}
+                    </Text>
+                }
+                fullScreen={isMobile}
+                size={'70%'}
+                transitionProps={{ transition: 'fade', duration: 200 }}
+            >
+                {
+                    renderNftModalImage()
+                }
+            </Modal>
+            <LoadingOverlay visible={isLoading} overlayBlur={2} />
         </Flex>
     )
 }

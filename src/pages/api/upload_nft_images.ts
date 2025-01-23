@@ -16,7 +16,7 @@ export default async function handler(
   const { files, wallet_address, nft_name } = req.body;
 
   let meta_data: any = {};
-  
+
   if (files.length == 1) {
     try {
       const extension = getImageExtension(files[0]);
@@ -38,7 +38,7 @@ export default async function handler(
       console.log(e);
     }
   } else {
-    const uploadedImages  = [];
+    const uploadedImages = [];
     for (let k = 0; k < files.length; k++) {
       const file = files[k];
       const extension = getImageExtension(file);
@@ -63,10 +63,10 @@ export default async function handler(
       primiary_image: uploadedImages[0]['image']
     }
   }
-  
+
   const { data, error } = await supabaseAdmin
-  .from('data')
-  .insert([{ meta_data, wallet_address}]);
+    .from('data')
+    .insert([{ meta_data, wallet_address }]);
   console.log(error);
 
   res.status(200).json({ message: 'Hello from Next.js!' })
